@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechHelp - Solve Tech Problems Together</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="auth.js"></script>
+  <script type="module" src="feed.js"></script>
+</head>
+<body class="bg-gray-100">
+  <!-- Navigation Bar -->
+  <nav class="bg-blue-600 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <a href="index.html" class="text-2xl font-bold">TechHelp</a>
+      <div class="flex items-center space-x-4">
+        <a href="post.html" class="bg-white text-blue-600 px-4 py-2 rounded-md font-medium hover:bg-blue-50">Post Problem</a>
+        <span id="userName" class="font-medium"></span>
+        <button id="logoutBtn" class="bg-red-500 px-4 py-2 rounded-md hover:bg-red-600 hidden">Logout</button>
+        <button id="loginBtn" class="bg-green-500 px-4 py-2 rounded-md hover:bg-green-600">Login</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6">Recent Tech Problems</h1>
+    
+    <!-- Posts Feed -->
+    <div id="postsFeed" class="space-y-6">
+      <!-- Posts will be dynamically inserted here -->
+    </div>
+  </main>
+
+  <!-- Post Template (Hidden) -->
+  <template id="postTemplate">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-lg" id="postUser"></span>
+          <span class="text-gray-500 text-sm" id="postTime"></span>
+        </div>
+        <p class="text-gray-700 mb-4" id="postDescription"></p>
+        <img id="postImage" class="w-full h-auto rounded-md mb-4" src="" alt="Problem screenshot">
+        
+        <div class="flex justify-between items-center">
+          <a href="#" class="text-blue-500 hover:underline view-comments">View Comments (<span id="commentCount">0</span>)</a>
+          <button class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 comment-btn">Add Comment</button>
+        </div>
+      </div>
+      
+      <!-- Comments Section (Initially Hidden) -->
+      <div class="bg-gray-50 p-4 hidden comments-section">
+        <div class="mb-4">
+          <textarea class="w-full p-2 border rounded-md" placeholder="Write your solution..." id="commentText"></textarea>
+          <button class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 submit-comment">Post Comment</button>
+        </div>
+        <div class="space-y-3" id="commentsList">
+          <!-- Comments will be inserted here -->
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Comment Template (Hidden) -->
+  <template id="commentTemplate">
+    <div class="bg-white p-3 rounded-md shadow-sm">
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="font-bold" id="commentUser"></span>
+          <p class="text-gray-700" id="commentText"></p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button class="upvote-btn text-gray-500 hover:text-green-500">
+            <span>▲</span>
+            <span id="upvoteCount">0</span>
+          </button>
+          <button class="downvote-btn text-gray-500 hover:text-red-500">
+            <span>▼</span>
+            <span id="downvoteCount">0</span>
+          </button>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500 mt-1" id="commentTime"></div>
+    </div>
+  </template>
+</body>
+</html>
