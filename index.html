@@ -117,530 +117,555 @@
       </div>
     </main>
   </div>
+<script>
+  // Data structure
+  let users = JSON.parse(localStorage.getItem('techHelpUsers')) || [];
+  let problems = JSON.parse(localStorage.getItem('techHelpProblems')) || [];
+  let comments = JSON.parse(localStorage.getItem('techHelpComments')) || [];
+  let votes = JSON.parse(localStorage.getItem('techHelpVotes')) || [];
+  let currentUser = JSON.parse(localStorage.getItem('techHelpCurrentUser'));
+  let currentView = 'auth'; // auth, feed, problem, post
 
-  <script>
-    // Data structure
-    let users = JSON.parse(localStorage.getItem('techHelpUsers')) || [];
-    let problems = JSON.parse(localStorage.getItem('techHelpProblems')) || [];
-    let comments = JSON.parse(localStorage.getItem('techHelpComments')) || [];
-    let votes = JSON.parse(localStorage.getItem('techHelpVotes')) || [];
-    let currentUser = JSON.parse(localStorage.getItem('techHelpCurrentUser'));
-    let currentView = 'auth'; // auth, feed, problem, post
+  // DOM elements
+  const authContainer = document.getElementById('authContainer');
+  const authForm = document.getElementById('authForm');
+  const authTitle = document.getElementById('authTitle');
+  const submitAuthBtn = document.getElementById('submitAuthBtn');
+  const switchAuthBtn = document.getElementById('switchAuthBtn');
+  const authError = document.getElementById('authError');
+  const nameField = document.getElementById('nameField');
+  const confirmPasswordField = document.getElementById('confirmPasswordField');
+  const userInfo = document.getElementById('userInfo');
+  const usernameDisplay = document.getElementById('usernameDisplay');
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const postProblemBtn = document.getElementById('postProblemBtn');
+  const feedContainer = document.getElementById('feedContainer');
+  const postProblemContainer = document.getElementById('postProblemContainer');
+  const postProblemForm = document.getElementById('postProblemForm');
+  const problemImage = document.getElementById('problemImage');
+  const fileName = document.getElementById('fileName');
+  const imagePreview = document.getElementById('imagePreview');
+  const cancelPostBtn = document.getElementById('cancelPostBtn');
+  const problemsFeed = document.getElementById('problemsFeed');
+  const problemDetailContainer = document.getElementById('problemDetailContainer');
+  const problemDetail = document.getElementById('problemDetail');
+  const backToFeedBtn = document.getElementById('backToFeedBtn');
+  const commentsSection = document.getElementById('commentsSection');
+  const addCommentForm = document.getElementById('addCommentForm');
+  const commentsList = document.getElementById('commentsList');
 
-    // DOM elements
-    const appContainer = document.getElementById('app');
-    const authContainer = document.getElementById('authContainer');
-    const authForm = document.getElementById('authForm');
-    const authTitle = document.getElementById('authTitle');
-    const submitAuthBtn = document.getElementById('submitAuthBtn');
-    const switchAuthBtn = document.getElementById('switchAuthBtn');
-    const authError = document.getElementById('authError');
-    const nameField = document.getElementById('nameField');
-    const confirmPasswordField = document.getElementById('confirmPasswordField');
-    const userInfo = document.getElementById('userInfo');
-    const usernameDisplay = document.getElementById('usernameDisplay');
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const postProblemBtn = document.getElementById('postProblemBtn');
-    const feedContainer = document.getElementById('feedContainer');
-    const postProblemContainer = document.getElementById('postProblemContainer');
-    const postProblemForm = document.getElementById('postProblemForm');
-    const problemImage = document.getElementById('problemImage');
-    const fileName = document.getElementById('fileName');
-    const imagePreview = document.getElementById('imagePreview');
-    const cancelPostBtn = document.getElementById('cancelPostBtn');
-    const problemsFeed = document.getElementById('problemsFeed');
-    const problemDetailContainer = document.getElementById('problemDetailContainer');
-    const problemDetail = document.getElementById('problemDetail');
-    const backToFeedBtn = document.getElementById('backToFeedBtn');
-    const commentsSection = document.getElementById('commentsSection');
-    const addCommentForm = document.getElementById('addCommentForm');
-    const commentsList = document.getElementById('commentsList');
-
-    // Initialize the app
-    function init() {
-      updateUI();
-      setupEventListeners();
+  // Initialize the app
+  function init() {
+    updateUI();
+    setupEventListeners();
+    
+    // Check if user is logged in but data is corrupted
+    if (currentUser && !users.some(u => u.id === currentUser.id)) {
+      logout();
     }
+  }
 
-    // Update UI based on current state
-    function updateUI() {
-      // Show/hide auth container
-      authContainer.classList.toggle('hidden', currentView !== 'auth');
+  // Update UI based on current state
+  function updateUI() {
+    // Show/hide auth container
+    authContainer.classList.toggle('hidden', currentView !== 'auth');
+    
+    // Show/hide feed container
+    feedContainer.classList.toggle('hidden', currentView !== 'feed');
+    
+    // Show/hide post problem container
+    postProblemContainer.classList.toggle('hidden', currentView !== 'post');
+    
+    // Show/hide problem detail container
+    problemDetailContainer.classList.toggle('hidden', currentView !== 'problem');
+    
+    // Update user info
+    if (currentUser) {
+      userInfo.classList.remove('hidden');
+      usernameDisplay.textContent = currentUser.name || currentUser.email;
+      loginBtn.classList.add('hidden');
+      postProblemBtn.classList.remove('hidden');
       
-      // Show/hide feed container
-      feedContainer.classList.toggle('hidden', currentView !== 'feed');
-      
-      // Show/hide post problem container
-      postProblemContainer.classList.toggle('hidden', currentView !== 'post');
-      
-      // Show/hide problem detail container
-      problemDetailContainer.classList.toggle('hidden', currentView !== 'problem');
-      
-      // Update user info
-      if (currentUser) {
-        userInfo.classList.remove('hidden');
-        usernameDisplay.textContent = currentUser.name || currentUser.email;
-        loginBtn.classList.add('hidden');
-        postProblemBtn.classList.remove('hidden');
-      } else {
-        userInfo.classList.add('hidden');
-        loginBtn.classList.remove('hidden');
-        postProblemBtn.classList.add('hidden');
+      // If logged in, default to feed view
+      if (currentView === 'auth') {
+        currentView = 'feed';
       }
+    } else {
+      userInfo.classList.add('hidden');
+      loginBtn.classList.remove('hidden');
+      postProblemBtn.classList.add('hidden');
       
-      // Load appropriate content
-      if (currentView === 'feed') {
-        loadProblemsFeed();
-      } else if (currentView === 'auth') {
-        resetAuthForm();
-      }
-    }
-
-    // Set up event listeners
-    function setupEventListeners() {
-      // Auth form toggle
-      switchAuthBtn.addEventListener('click', toggleAuthMode);
-      
-      // Auth form submission
-      authForm.addEventListener('submit', handleAuthSubmit);
-      
-      // Login button
-      loginBtn.addEventListener('click', () => {
+      // If not logged in, default to auth view
+      if (currentView !== 'auth') {
         currentView = 'auth';
-        updateUI();
-      });
-      
-      // Logout button
-      logoutBtn.addEventListener('click', logout);
-      
-      // Post problem button
-      postProblemBtn.addEventListener('click', () => {
-        currentView = 'post';
-        updateUI();
-      });
-      
-      // Cancel post button
-      cancelPostBtn.addEventListener('click', () => {
-        currentView = 'feed';
-        updateUI();
-      });
-      
-      // Post problem form
-      postProblemForm.addEventListener('submit', handlePostProblem);
-      
-      // Image upload preview
-      problemImage.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          fileName.textContent = file.name;
-          
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            imagePreview.src = event.target.result;
-            imagePreview.classList.remove('hidden');
-          };
-          reader.readAsDataURL(file);
-        } else {
-          fileName.textContent = 'No file chosen';
-          imagePreview.classList.add('hidden');
-        }
-      });
-      
-      // Back to feed button
-      backToFeedBtn.addEventListener('click', () => {
-        currentView = 'feed';
-        updateUI();
-      });
-      
-      // Add comment form
-      addCommentForm.addEventListener('submit', handleAddComment);
-    }
-
-    // Toggle between login and signup
-    function toggleAuthMode() {
-      const isLogin = authTitle.textContent === 'Login';
-      
-      if (isLogin) {
-        authTitle.textContent = 'Sign Up';
-        submitAuthBtn.textContent = 'Sign Up';
-        switchAuthBtn.textContent = 'Already have an account?';
-        nameField.classList.remove('hidden');
-        confirmPasswordField.classList.remove('hidden');
-      } else {
-        authTitle.textContent = 'Login';
-        submitAuthBtn.textContent = 'Login';
-        switchAuthBtn.textContent = 'Need to create an account?';
-        nameField.classList.add('hidden');
-        confirmPasswordField.classList.add('hidden');
       }
-      
-      authError.classList.add('hidden');
     }
+    
+    // Load appropriate content
+    if (currentView === 'feed') {
+      loadProblemsFeed();
+    } else if (currentView === 'auth') {
+      resetAuthForm();
+    }
+  }
 
-    // Reset auth form
-    function resetAuthForm() {
+  // Set up event listeners
+  function setupEventListeners() {
+    // Auth form toggle
+    switchAuthBtn.addEventListener('click', toggleAuthMode);
+    
+    // Auth form submission
+    authForm.addEventListener('submit', handleAuthSubmit);
+    
+    // Login button
+    loginBtn.addEventListener('click', () => {
+      currentView = 'auth';
+      updateUI();
+    });
+    
+    // Logout button
+    logoutBtn.addEventListener('click', logout);
+    
+    // Post problem button
+    postProblemBtn.addEventListener('click', () => {
+      currentView = 'post';
+      updateUI();
+    });
+    
+    // Cancel post button
+    cancelPostBtn.addEventListener('click', () => {
+      currentView = 'feed';
+      updateUI();
+    });
+    
+    // Post problem form
+    postProblemForm.addEventListener('submit', handlePostProblem);
+    
+    // Image upload preview
+    problemImage.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        fileName.textContent = file.name;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          imagePreview.src = event.target.result;
+          imagePreview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        fileName.textContent = 'No file chosen';
+        imagePreview.classList.add('hidden');
+      }
+    });
+    
+    // Back to feed button
+    backToFeedBtn.addEventListener('click', () => {
+      currentView = 'feed';
+      updateUI();
+    });
+    
+    // Add comment form
+    addCommentForm.addEventListener('submit', handleAddComment);
+  }
+
+  // Toggle between login and signup
+  function toggleAuthMode() {
+    const isLogin = authTitle.textContent === 'Login';
+    
+    if (isLogin) {
+      authTitle.textContent = 'Sign Up';
+      submitAuthBtn.textContent = 'Sign Up';
+      switchAuthBtn.textContent = 'Already have an account?';
+      nameField.classList.remove('hidden');
+      confirmPasswordField.classList.remove('hidden');
+    } else {
       authTitle.textContent = 'Login';
       submitAuthBtn.textContent = 'Login';
       switchAuthBtn.textContent = 'Need to create an account?';
       nameField.classList.add('hidden');
       confirmPasswordField.classList.add('hidden');
-      authForm.reset();
-      authError.classList.add('hidden');
     }
+    
+    authError.classList.add('hidden');
+  }
 
-    // Handle auth form submission
-    function handleAuthSubmit(e) {
-      e.preventDefault();
-      
-      const isLogin = authTitle.textContent === 'Login';
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      
-      if (isLogin) {
-        login(email, password);
-      } else {
-        const name = document.getElementById('name').value;
-        const confirmPassword = document.getElementById('confirmPassword').value;
-        
-        if (password !== confirmPassword) {
-          showAuthError("Passwords don't match");
-          return;
-        }
-        
-        signup(name, email, password);
-      }
-    }
+  // Reset auth form
+  function resetAuthForm() {
+    authTitle.textContent = 'Login';
+    submitAuthBtn.textContent = 'Login';
+    switchAuthBtn.textContent = 'Need to create an account?';
+    nameField.classList.add('hidden');
+    confirmPasswordField.classList.add('hidden');
+    authForm.reset();
+    authError.classList.add('hidden');
+  }
 
-    // Login function
-    function login(email, password) {
-      const user = users.find(u => u.email === email && u.password === password);
+  // Handle auth form submission
+  function handleAuthSubmit(e) {
+    e.preventDefault();
+    
+    const isLogin = authTitle.textContent === 'Login';
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    
+    if (isLogin) {
+      login(email, password);
+    } else {
+      const name = document.getElementById('name').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
       
-      if (user) {
-        currentUser = user;
-        localStorage.setItem('techHelpCurrentUser', JSON.stringify(currentUser));
-        currentView = 'feed';
-        updateUI();
-      } else {
-        showAuthError('Invalid email or password');
-      }
-    }
-
-    // Signup function
-    function signup(name, email, password) {
-      // Check if user already exists
-      if (users.some(u => u.email === email)) {
-        showAuthError('Email already in use');
+      if (password !== confirmPassword) {
+        showAuthError("Passwords don't match");
         return;
       }
       
-      const newUser = {
-        id: Date.now().toString(),
-        name,
-        email,
-        password,
-        joinedAt: new Date().toISOString()
-      };
-      
-      users.push(newUser);
-      localStorage.setItem('techHelpUsers', JSON.stringify(users));
-      
-      currentUser = newUser;
+      signup(name, email, password);
+    }
+  }
+
+  // Login function
+  function login(email, password) {
+    const user = users.find(u => u.email === email && u.password === password);
+    
+    if (user) {
+      currentUser = user;
       localStorage.setItem('techHelpCurrentUser', JSON.stringify(currentUser));
       currentView = 'feed';
       updateUI();
+    } else {
+      showAuthError('Invalid email or password');
     }
+  }
 
-    // Logout function
-    function logout() {
-      currentUser = null;
-      localStorage.removeItem('techHelpCurrentUser');
-      currentView = 'auth';
-      updateUI();
+  // Signup function
+  function signup(name, email, password) {
+    // Check if user already exists
+    if (users.some(u => u.email === email)) {
+      showAuthError('Email already in use');
+      return;
     }
+    
+    const newUser = {
+      id: Date.now().toString(),
+      name,
+      email,
+      password,
+      joinedAt: new Date().toISOString()
+    };
+    
+    users.push(newUser);
+    localStorage.setItem('techHelpUsers', JSON.stringify(users));
+    
+    currentUser = newUser;
+    localStorage.setItem('techHelpCurrentUser', JSON.stringify(currentUser));
+    currentView = 'feed';
+    updateUI();
+  }
 
-    // Show auth error
-    function showAuthError(message) {
-      authError.textContent = message;
-      authError.classList.remove('hidden');
+  // Logout function
+  function logout() {
+    currentUser = null;
+    localStorage.removeItem('techHelpCurrentUser');
+    currentView = 'auth';
+    updateUI();
+  }
+
+  // Show auth error
+  function showAuthError(message) {
+    authError.textContent = message;
+    authError.classList.remove('hidden');
+  }
+
+  // Handle post problem
+  function handlePostProblem(e) {
+    e.preventDefault();
+    
+    const description = document.getElementById('problemDescription').value;
+    const file = problemImage.files[0];
+    
+    let imageUrl = null;
+    if (file) {
+      // In a real app, you'd upload this to a server
+      // For localStorage, we'll just store the file name
+      imageUrl = file.name;
     }
+    
+    const newProblem = {
+      id: Date.now().toString(),
+      userId: currentUser.id,
+      userEmail: currentUser.email,
+      userName: currentUser.name,
+      description,
+      imageUrl,
+      createdAt: new Date().toISOString(),
+      comments: []
+    };
+    
+    problems.unshift(newProblem); // Add to beginning of array
+    localStorage.setItem('techHelpProblems', JSON.stringify(problems));
+    
+    // Reset form
+    postProblemForm.reset();
+    fileName.textContent = 'No file chosen';
+    imagePreview.classList.add('hidden');
+    imagePreview.src = '#';
+    
+    // Go to feed
+    currentView = 'feed';
+    updateUI();
+  }
 
-    // Handle post problem
-    function handlePostProblem(e) {
-      e.preventDefault();
-      
-      const description = document.getElementById('problemDescription').value;
-      const file = problemImage.files[0];
-      
-      let imageUrl = null;
-      if (file) {
-        // In a real app, you'd upload this to a server
-        // For localStorage, we'll just store the file name
-        imageUrl = file.name;
-      }
-      
-      const newProblem = {
-        id: Date.now().toString(),
-        userId: currentUser.id,
-        userEmail: currentUser.email,
-        userName: currentUser.name,
-        description,
-        imageUrl,
-        createdAt: new Date().toISOString(),
-        comments: []
-      };
-      
-      problems.unshift(newProblem); // Add to beginning of array
-      localStorage.setItem('techHelpProblems', JSON.stringify(problems));
-      
-      // Reset form
-      postProblemForm.reset();
-      fileName.textContent = 'No file chosen';
-      imagePreview.classList.add('hidden');
-      imagePreview.src = '#';
-      
-      // Go to feed
-      currentView = 'feed';
-      updateUI();
+  // Load problems feed
+  function loadProblemsFeed() {
+    problemsFeed.innerHTML = '';
+    
+    if (problems.length === 0) {
+      problemsFeed.innerHTML = '<p class="text-center text-gray-500 py-8">No problems posted yet. Be the first to post one!</p>';
+      return;
     }
-
-    // Load problems feed
-    function loadProblemsFeed() {
-      problemsFeed.innerHTML = '';
+    
+    problems.forEach(problem => {
+      const problemEl = document.createElement('div');
+      problemEl.className = 'bg-white p-6 rounded-lg shadow-md';
+      problemEl.dataset.problemId = problem.id;
       
-      if (problems.length === 0) {
-        problemsFeed.innerHTML = '<p class="text-center text-gray-500 py-8">No problems posted yet. Be the first to post one!</p>';
-        return;
-      }
-      
-      problems.forEach(problem => {
-        const problemEl = document.createElement('div');
-        problemEl.className = 'bg-white p-6 rounded-lg shadow-md';
-        problemEl.dataset.problemId = problem.id;
-        
-        problemEl.innerHTML = `
-          <div class="flex justify-between items-start mb-2">
-            <div>
-              <h3 class="font-bold text-lg">${problem.userName || problem.userEmail}</h3>
-              <p class="text-gray-500 text-sm">${formatDate(problem.createdAt)}</p>
-            </div>
-            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${problem.comments.length} solutions</span>
+      problemEl.innerHTML = `
+        <div class="flex justify-between items-start mb-2">
+          <div>
+            <h3 class="font-bold text-lg">${problem.userName || problem.userEmail}</h3>
+            <p class="text-gray-500 text-sm">${formatDate(problem.createdAt)}</p>
           </div>
-          <p class="text-gray-700 mb-4">${problem.description}</p>
-          ${problem.imageUrl ? `<img src="${problem.imageUrl}" alt="Problem screenshot" class="w-full h-auto rounded-md mb-4">` : ''}
-          <button class="view-problem-btn bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 w-full">View Solutions</button>
-        `;
-        
-        problemsFeed.appendChild(problemEl);
-      });
-      
-      // Add event listeners to view buttons
-      document.querySelectorAll('.view-problem-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const problemId = e.target.closest('[data-problem-id]').dataset.problemId;
-          viewProblem(problemId);
-        });
-      });
-    }
-
-    // View a single problem
-    function viewProblem(problemId) {
-      const problem = problems.find(p => p.id === problemId);
-      if (!problem) return;
-      
-      problemDetail.innerHTML = `
-        <div class="mb-4">
-          <h3 class="font-bold text-xl">${problem.userName || problem.userEmail}</h3>
-          <p class="text-gray-500 text-sm">${formatDate(problem.createdAt)}</p>
+          <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${problem.comments ? problem.comments.length : 0} solutions</span>
         </div>
         <p class="text-gray-700 mb-4">${problem.description}</p>
         ${problem.imageUrl ? `<img src="${problem.imageUrl}" alt="Problem screenshot" class="w-full h-auto rounded-md mb-4">` : ''}
+        <button class="view-problem-btn bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 w-full">View Solutions</button>
       `;
       
-      // Load comments for this problem
-      loadComments(problemId);
-      
-      currentView = 'problem';
-      updateUI();
-    }
+      problemsFeed.appendChild(problemEl);
+    });
+    
+    // Add event listeners to view buttons
+    document.querySelectorAll('.view-problem-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const problemId = e.target.closest('[data-problem-id]').dataset.problemId;
+        viewProblem(problemId);
+      });
+    });
+  }
 
-    // Load comments for a problem
-    function loadComments(problemId) {
-      const problemComments = comments.filter(c => c.problemId === problemId);
-      
-      commentsList.innerHTML = '';
-      
-      if (problemComments.length === 0) {
-        commentsList.innerHTML = '<p class="text-center text-gray-500 py-8">No solutions yet. Be the first to post one!</p>';
-        return;
-      }
-      
-      problemComments.forEach(comment => {
-        const commentEl = document.createElement('div');
-        commentEl.className = `bg-gray-50 p-4 rounded-md ${comment.isBestAnswer ? 'best-answer' : ''}`;
-        commentEl.dataset.commentId = comment.id;
-        
-        // Calculate votes
-        const commentVotes = votes.filter(v => v.commentId === comment.id);
-        const upvotes = commentVotes.filter(v => v.type === 'upvote').length;
-        const downvotes = commentVotes.filter(v => v.type === 'downvote').length;
-        
-        // Check if current user has voted
-        const userUpvoted = currentUser && commentVotes.some(v => v.userId === currentUser.id && v.type === 'upvote');
-        const userDownvoted = currentUser && commentVotes.some(v => v.userId === currentUser.id && v.type === 'downvote');
-        
-        // Check if current user is the problem owner
-        const problem = problems.find(p => p.id === problemId);
-        const isProblemOwner = currentUser && problem.userId === currentUser.id;
-        
-        commentEl.innerHTML = `
-          <div class="flex justify-between items-start">
-            <div>
-              <h4 class="font-bold">${comment.userName || comment.userEmail}</h4>
-              <p class="text-gray-700">${comment.text}</p>
-              <p class="text-gray-500 text-sm mt-1">${formatDate(comment.createdAt)}</p>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="vote-btn ${userUpvoted ? 'text-green-500' : 'text-gray-500'}" data-vote="upvote">
-                ▲ <span class="vote-count">${upvotes}</span>
-              </button>
-              <button class="vote-btn ${userDownvoted ? 'text-red-500' : 'text-gray-500'}" data-vote="downvote">
-                ▼ <span class="vote-count">${downvotes}</span>
-              </button>
-            </div>
-          </div>
-          ${isProblemOwner && !comment.isBestAnswer ? `
-            <div class="mt-2 text-right">
-              <button class="mark-best-answer-btn text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200">Mark as Best Answer</button>
-            </div>
-          ` : ''}
-          ${comment.isBestAnswer ? `
-            <div class="mt-2 text-right">
-              <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✓ Best Answer</span>
-            </div>
-          ` : ''}
-        `;
-        
-        commentsList.appendChild(commentEl);
-      });
-      
-      // Add event listeners to vote buttons
-      document.querySelectorAll('.vote-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          if (!currentUser) {
-            alert('Please login to vote');
-            return;
-          }
-          
-          const commentId = e.target.closest('[data-comment-id]').dataset.commentId;
-          const voteType = e.target.dataset.vote;
-          handleVote(commentId, voteType);
-        });
-      });
-      
-      // Add event listeners to mark best answer buttons
-      document.querySelectorAll('.mark-best-answer-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const commentId = e.target.closest('[data-comment-id]').dataset.commentId;
-          markBestAnswer(problemId, commentId);
-        });
-      });
-    }
+  // View a single problem
+  function viewProblem(problemId) {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return;
+    
+    // Store the problem ID in the container's dataset
+    problemDetailContainer.dataset.problemId = problemId;
+    
+    problemDetail.innerHTML = `
+      <div class="mb-4">
+        <h3 class="font-bold text-xl">${problem.userName || problem.userEmail}</h3>
+        <p class="text-gray-500 text-sm">${formatDate(problem.createdAt)}</p>
+      </div>
+      <p class="text-gray-700 mb-4">${problem.description}</p>
+      ${problem.imageUrl ? `<img src="${problem.imageUrl}" alt="Problem screenshot" class="w-full h-auto rounded-md mb-4">` : ''}
+    `;
+    
+    // Load comments for this problem
+    loadComments(problemId);
+    
+    currentView = 'problem';
+    updateUI();
+  }
 
-    // Handle adding a comment
-    function handleAddComment(e) {
-      e.preventDefault();
+  // Load comments for a problem
+  function loadComments(problemId) {
+    const problemComments = comments.filter(c => c.problemId === problemId);
+    
+    commentsList.innerHTML = '';
+    
+    if (problemComments.length === 0) {
+      commentsList.innerHTML = '<p class="text-center text-gray-500 py-8">No solutions yet. Be the first to post one!</p>';
+      return;
+    }
+    
+    problemComments.forEach(comment => {
+      const commentEl = document.createElement('div');
+      commentEl.className = `bg-gray-50 p-4 rounded-md ${comment.isBestAnswer ? 'best-answer' : ''}`;
+      commentEl.dataset.commentId = comment.id;
       
-      if (!currentUser) {
-        alert('Please login to comment');
-        return;
-      }
+      // Calculate votes
+      const commentVotes = votes.filter(v => v.commentId === comment.id);
+      const upvotes = commentVotes.filter(v => v.type === 'upvote').length;
+      const downvotes = commentVotes.filter(v => v.type === 'downvote').length;
       
-      const text = document.getElementById('commentText').value.trim();
-      if (!text) {
-        alert('Please enter a comment');
-        return;
-      }
+      // Check if current user has voted
+      const userUpvoted = currentUser && commentVotes.some(v => v.userId === currentUser.id && v.type === 'upvote');
+      const userDownvoted = currentUser && commentVotes.some(v => v.userId === currentUser.id && v.type === 'downvote');
       
-      const problemId = problems.find(p => p.id === problemDetailContainer.dataset.problemId)?.id;
-      if (!problemId) return;
-      
-      const newComment = {
-        id: Date.now().toString(),
-        problemId,
-        userId: currentUser.id,
-        userEmail: currentUser.email,
-        userName: currentUser.name,
-        text,
-        createdAt: new Date().toISOString(),
-        isBestAnswer: false
-      };
-      
-      comments.push(newComment);
-      localStorage.setItem('techHelpComments', JSON.stringify(comments));
-      
-      // Update problem comments count
+      // Check if current user is the problem owner
       const problem = problems.find(p => p.id === problemId);
-      if (problem) {
-        problem.comments.push(newComment.id);
-        localStorage.setItem('techHelpProblems', JSON.stringify(problems));
-      }
+      const isProblemOwner = currentUser && problem.userId === currentUser.id;
       
-      // Reset form and reload comments
-      document.getElementById('commentText').value = '';
-      loadComments(problemId);
-    }
-
-    // Handle voting
-    function handleVote(commentId, voteType) {
-      if (!currentUser) return;
+      commentEl.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div>
+            <h4 class="font-bold">${comment.userName || comment.userEmail}</h4>
+            <p class="text-gray-700">${comment.text}</p>
+            <p class="text-gray-500 text-sm mt-1">${formatDate(comment.createdAt)}</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button class="vote-btn ${userUpvoted ? 'text-green-500' : 'text-gray-500'}" data-vote="upvote">
+              ▲ <span class="vote-count">${upvotes}</span>
+            </button>
+            <button class="vote-btn ${userDownvoted ? 'text-red-500' : 'text-gray-500'}" data-vote="downvote">
+              ▼ <span class="vote-count">${downvotes}</span>
+            </button>
+          </div>
+        </div>
+        ${isProblemOwner && !comment.isBestAnswer ? `
+          <div class="mt-2 text-right">
+            <button class="mark-best-answer-btn text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200">Mark as Best Answer</button>
+          </div>
+        ` : ''}
+        ${comment.isBestAnswer ? `
+          <div class="mt-2 text-right">
+            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✓ Best Answer</span>
+          </div>
+        ` : ''}
+      `;
       
-      // Remove any existing vote by this user on this comment
-      votes = votes.filter(v => !(v.commentId === commentId && v.userId === currentUser.id));
-      
-      // Add new vote
-      votes.push({
-        commentId,
-        userId: currentUser.id,
-        type: voteType
-      });
-      
-      localStorage.setItem('techHelpVotes', JSON.stringify(votes));
-      
-      // Reload comments to show updated votes
-      const problemId = problems.find(p => p.comments.includes(commentId))?.id;
-      if (problemId) {
-        loadComments(problemId);
-      }
-    }
-
-    // Mark comment as best answer
-    function markBestAnswer(problemId, commentId) {
-      // Remove best answer from all other comments on this problem
-      comments.forEach(c => {
-        if (c.problemId === problemId) {
-          c.isBestAnswer = false;
+      commentsList.appendChild(commentEl);
+    });
+    
+    // Add event listeners to vote buttons
+    document.querySelectorAll('.vote-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (!currentUser) {
+          alert('Please login to vote');
+          return;
         }
+        
+        const commentId = e.target.closest('[data-comment-id]').dataset.commentId;
+        const voteType = e.target.dataset.vote;
+        handleVote(commentId, voteType);
       });
-      
-      // Set this comment as best answer
-      const comment = comments.find(c => c.id === commentId);
-      if (comment) {
-        comment.isBestAnswer = true;
+    });
+    
+    // Add event listeners to mark best answer buttons
+    document.querySelectorAll('.mark-best-answer-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const commentId = e.target.closest('[data-comment-id]').dataset.commentId;
+        markBestAnswer(problemId, commentId);
+      });
+    });
+  }
+
+  // Handle adding a comment
+  function handleAddComment(e) {
+    e.preventDefault();
+    
+    if (!currentUser) {
+      alert('Please login to comment');
+      return;
+    }
+    
+    const text = document.getElementById('commentText').value.trim();
+    if (!text) {
+      alert('Please enter a comment');
+      return;
+    }
+    
+    // Get the problem ID from the container's dataset
+    const problemId = problemDetailContainer.dataset.problemId;
+    if (!problemId) {
+      alert('Problem not found');
+      return;
+    }
+    
+    const newComment = {
+      id: Date.now().toString(),
+      problemId,
+      userId: currentUser.id,
+      userEmail: currentUser.email,
+      userName: currentUser.name,
+      text,
+      createdAt: new Date().toISOString(),
+      isBestAnswer: false
+    };
+    
+    comments.push(newComment);
+    localStorage.setItem('techHelpComments', JSON.stringify(comments));
+    
+    // Update problem comments count
+    const problem = problems.find(p => p.id === problemId);
+    if (problem) {
+      if (!problem.comments) {
+        problem.comments = []; // Initialize if doesn't exist
       }
-      
-      localStorage.setItem('techHelpComments', JSON.stringify(comments));
+      problem.comments.push(newComment.id);
+      localStorage.setItem('techHelpProblems', JSON.stringify(problems));
+    }
+    
+    // Reset form and reload comments
+    document.getElementById('commentText').value = '';
+    loadComments(problemId);
+  }
+
+  // Handle voting
+  function handleVote(commentId, voteType) {
+    if (!currentUser) return;
+    
+    // Remove any existing vote by this user on this comment
+    votes = votes.filter(v => !(v.commentId === commentId && v.userId === currentUser.id));
+    
+    // Add new vote
+    votes.push({
+      commentId,
+      userId: currentUser.id,
+      type: voteType
+    });
+    
+    localStorage.setItem('techHelpVotes', JSON.stringify(votes));
+    
+    // Reload comments to show updated votes
+    const problemId = problemDetailContainer.dataset.problemId;
+    if (problemId) {
       loadComments(problemId);
     }
+  }
 
-    // Format date
-    function formatDate(isoString) {
-      const date = new Date(isoString);
-      return date.toLocaleString();
+  // Mark comment as best answer
+  function markBestAnswer(problemId, commentId) {
+    // Remove best answer from all other comments on this problem
+    comments.forEach(c => {
+      if (c.problemId === problemId) {
+        c.isBestAnswer = false;
+      }
+    });
+    
+    // Set this comment as best answer
+    const comment = comments.find(c => c.id === commentId);
+    if (comment) {
+      comment.isBestAnswer = true;
     }
+    
+    localStorage.setItem('techHelpComments', JSON.stringify(comments));
+    loadComments(problemId);
+  }
 
-    // Initialize the app
-    init();
-  </script>
-</body>
+  // Format date
+  function formatDate(isoString) {
+    const date = new Date(isoString);
+    return date.toLocaleString();
+  }
+
+  // Initialize the app
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+    
+
+  </body>
 </html>
