@@ -5,85 +5,642 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TechHelp - Solve Tech Problems Together</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script type="module" src="firebase.js"></script>
-  <script type="module" src="auth.js"></script>
-  <script type="module" src="feed.js"></script>
+  <style>
+    .hidden { display: none; }
+    .best-answer { border-left: 4px solid #10B981; background-color: #ECFDF5; }
+  </style>
 </head>
-<body class="bg-gray-100">
-  <!-- Navigation Bar -->
-  <nav class="bg-blue-600 text-white p-4 shadow-md">
-    <div class="container mx-auto flex justify-between items-center">
-      <a href="index.html" class="text-2xl font-bold">TechHelp</a>
-      <div class="flex items-center space-x-4">
-        <a href="post.html" class="bg-white text-blue-600 px-4 py-2 rounded-md font-medium hover:bg-blue-50">Post Problem</a>
-        <span id="userName" class="font-medium"></span>
-        <button id="logoutBtn" class="bg-red-500 px-4 py-2 rounded-md hover:bg-red-600 hidden">Logout</button>
-        <button id="loginBtn" class="bg-green-500 px-4 py-2 rounded-md hover:bg-green-600">Login</button>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Main Content -->
-  <main class="container mx-auto p-4">
-    <h1 class="text-3xl font-bold mb-6">Recent Tech Problems</h1>
-    
-    <!-- Posts Feed -->
-    <div id="postsFeed" class="space-y-6">
-      <!-- Posts will be dynamically inserted here -->
-    </div>
-  </main>
-
-  <!-- Post Template (Hidden) -->
-  <template id="postTemplate">
-    <div class="bg-white rounded-lg shadow-md overflow-hidden">
-      <div class="p-4">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-bold text-lg" id="postUser"></span>
-          <span class="text-gray-500 text-sm" id="postTime"></span>
-        </div>
-        <p class="text-gray-700 mb-4" id="postDescription"></p>
-        <img id="postImage" class="w-full h-auto rounded-md mb-4" src="" alt="Problem screenshot">
-        
-        <div class="flex justify-between items-center">
-          <a href="#" class="text-blue-500 hover:underline view-comments">View Comments (<span id="commentCount">0</span>)</a>
-          <button class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 comment-btn">Add Comment</button>
+<body class="bg-gray-100 min-h-screen">
+  <div id="app" class="container mx-auto px-4 py-6">
+    <!-- Navigation Bar -->
+    <nav class="bg-blue-600 text-white p-4 rounded-lg shadow-md mb-6">
+      <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold">TechHelp</h1>
+        <div class="flex items-center space-x-4">
+          <div id="userInfo" class="hidden">
+            <span id="usernameDisplay" class="font-medium"></span>
+            <button id="logoutBtn" class="ml-4 bg-red-500 px-3 py-1 rounded-md hover:bg-red-600">Logout</button>
+          </div>
+          <button id="loginBtn" class="bg-green-500 px-3 py-1 rounded-md hover:bg-green-600">Login</button>
+          <button id="postProblemBtn" class="bg-white text-blue-600 px-3 py-1 rounded-md font-medium hover:bg-blue-50 hidden">Post Problem</button>
         </div>
       </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main>
+      <!-- Login/Signup Form -->
+      <div id="authContainer" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+        <h2 class="text-2xl font-bold mb-4 text-center" id="authTitle">Login</h2>
+        <form id="authForm" class="space-y-4">
+          <div id="nameField" class="hidden">
+            <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+            <input type="text" id="name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+            <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+            <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div id="confirmPasswordField" class="hidden">
+            <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+            <input type="password" id="confirmPassword" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <button type="submit" id="submitAuthBtn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Login</button>
+          <div class="text-center">
+            <button type="button" id="switchAuthBtn" class="text-blue-600 hover:text-blue-500 text-sm">Need to create an account?</button>
+          </div>
+          <div id="authError" class="text-red-600 text-sm text-center hidden"></div>
+        </form>
+      </div>
+
+      <!-- Post Problem Form -->
+      <div id="postProblemContainer" class="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto mb-6 hidden">
+        <h2 class="text-2xl font-bold mb-4">Post a Tech Problem</h2>
+        <form id="postProblemForm" class="space-y-4">
+          <div>
+            <label for="problemDescription" class="block text-sm font-medium text-gray-700">Describe your problem</label>
+            <textarea id="problemDescription" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Upload screenshot (optional)</label>
+            <div class="mt-1 flex items-center">
+              <label for="problemImage" class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                Choose File
+                <input type="file" id="problemImage" accept="image/*" class="sr-only">
+              </label>
+              <span id="fileName" class="ml-2 text-sm text-gray-600">No file chosen</span>
+            </div>
+            <div class="mt-2">
+              <img id="imagePreview" class="max-w-full h-auto rounded-md hidden" src="#" alt="Preview">
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3">
+            <button type="button" id="cancelPostBtn" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">Cancel</button>
+            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Post Problem</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Problems Feed -->
+      <div id="feedContainer" class="hidden">
+        <h2 class="text-2xl font-bold mb-4">Recent Tech Problems</h2>
+        <div id="problemsFeed" class="space-y-6">
+          <!-- Problems will be loaded here -->
+        </div>
+      </div>
+
+      <!-- Problem Detail View -->
+      <div id="problemDetailContainer" class="hidden">
+        <button id="backToFeedBtn" class="mb-4 flex items-center text-blue-600 hover:text-blue-800">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+          </svg>
+          Back to feed
+        </button>
+        <div id="problemDetail" class="bg-white p-6 rounded-lg shadow-md mb-6">
+          <!-- Problem details will be loaded here -->
+        </div>
+        <div id="commentsSection" class="bg-white p-6 rounded-lg shadow-md">
+          <h3 class="text-xl font-bold mb-4">Solutions</h3>
+          <form id="addCommentForm" class="mb-6">
+            <textarea id="commentText" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Post your solution..." required></textarea>
+            <button type="submit" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Post Solution</button>
+          </form>
+          <div id="commentsList" class="space-y-4">
+            <!-- Comments will be loaded here -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Data structure
+    let users = JSON.parse(localStorage.getItem('techHelpUsers')) || [];
+    let problems = JSON.parse(localStorage.getItem('techHelpProblems')) || [];
+    let comments = JSON.parse(localStorage.getItem('techHelpComments')) || [];
+    let votes = JSON.parse(localStorage.getItem('techHelpVotes')) || [];
+    let currentUser = JSON.parse(localStorage.getItem('techHelpCurrentUser'));
+    let currentView = 'auth'; // auth, feed, problem, post
+
+    // DOM elements
+    const appContainer = document.getElementById('app');
+    const authContainer = document.getElementById('authContainer');
+    const authForm = document.getElementById('authForm');
+    const authTitle = document.getElementById('authTitle');
+    const submitAuthBtn = document.getElementById('submitAuthBtn');
+    const switchAuthBtn = document.getElementById('switchAuthBtn');
+    const authError = document.getElementById('authError');
+    const nameField = document.getElementById('nameField');
+    const confirmPasswordField = document.getElementById('confirmPasswordField');
+    const userInfo = document.getElementById('userInfo');
+    const usernameDisplay = document.getElementById('usernameDisplay');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const postProblemBtn = document.getElementById('postProblemBtn');
+    const feedContainer = document.getElementById('feedContainer');
+    const postProblemContainer = document.getElementById('postProblemContainer');
+    const postProblemForm = document.getElementById('postProblemForm');
+    const problemImage = document.getElementById('problemImage');
+    const fileName = document.getElementById('fileName');
+    const imagePreview = document.getElementById('imagePreview');
+    const cancelPostBtn = document.getElementById('cancelPostBtn');
+    const problemsFeed = document.getElementById('problemsFeed');
+    const problemDetailContainer = document.getElementById('problemDetailContainer');
+    const problemDetail = document.getElementById('problemDetail');
+    const backToFeedBtn = document.getElementById('backToFeedBtn');
+    const commentsSection = document.getElementById('commentsSection');
+    const addCommentForm = document.getElementById('addCommentForm');
+    const commentsList = document.getElementById('commentsList');
+
+    // Initialize the app
+    function init() {
+      updateUI();
+      setupEventListeners();
+    }
+
+    // Update UI based on current state
+    function updateUI() {
+      // Show/hide auth container
+      authContainer.classList.toggle('hidden', currentView !== 'auth');
       
-      <!-- Comments Section (Initially Hidden) -->
-      <div class="bg-gray-50 p-4 hidden comments-section">
-        <div class="mb-4">
-          <textarea class="w-full p-2 border rounded-md" placeholder="Write your solution..." id="commentText"></textarea>
-          <button class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 submit-comment">Post Comment</button>
-        </div>
-        <div class="space-y-3" id="commentsList">
-          <!-- Comments will be inserted here -->
-        </div>
-      </div>
-    </div>
-  </template>
+      // Show/hide feed container
+      feedContainer.classList.toggle('hidden', currentView !== 'feed');
+      
+      // Show/hide post problem container
+      postProblemContainer.classList.toggle('hidden', currentView !== 'post');
+      
+      // Show/hide problem detail container
+      problemDetailContainer.classList.toggle('hidden', currentView !== 'problem');
+      
+      // Update user info
+      if (currentUser) {
+        userInfo.classList.remove('hidden');
+        usernameDisplay.textContent = currentUser.name || currentUser.email;
+        loginBtn.classList.add('hidden');
+        postProblemBtn.classList.remove('hidden');
+      } else {
+        userInfo.classList.add('hidden');
+        loginBtn.classList.remove('hidden');
+        postProblemBtn.classList.add('hidden');
+      }
+      
+      // Load appropriate content
+      if (currentView === 'feed') {
+        loadProblemsFeed();
+      } else if (currentView === 'auth') {
+        resetAuthForm();
+      }
+    }
 
-  <!-- Comment Template (Hidden) -->
-  <template id="commentTemplate">
-    <div class="bg-white p-3 rounded-md shadow-sm">
-      <div class="flex justify-between items-start">
-        <div>
-          <span class="font-bold" id="commentUser"></span>
-          <p class="text-gray-700" id="commentText"></p>
+    // Set up event listeners
+    function setupEventListeners() {
+      // Auth form toggle
+      switchAuthBtn.addEventListener('click', toggleAuthMode);
+      
+      // Auth form submission
+      authForm.addEventListener('submit', handleAuthSubmit);
+      
+      // Login button
+      loginBtn.addEventListener('click', () => {
+        currentView = 'auth';
+        updateUI();
+      });
+      
+      // Logout button
+      logoutBtn.addEventListener('click', logout);
+      
+      // Post problem button
+      postProblemBtn.addEventListener('click', () => {
+        currentView = 'post';
+        updateUI();
+      });
+      
+      // Cancel post button
+      cancelPostBtn.addEventListener('click', () => {
+        currentView = 'feed';
+        updateUI();
+      });
+      
+      // Post problem form
+      postProblemForm.addEventListener('submit', handlePostProblem);
+      
+      // Image upload preview
+      problemImage.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          fileName.textContent = file.name;
+          
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            imagePreview.src = event.target.result;
+            imagePreview.classList.remove('hidden');
+          };
+          reader.readAsDataURL(file);
+        } else {
+          fileName.textContent = 'No file chosen';
+          imagePreview.classList.add('hidden');
+        }
+      });
+      
+      // Back to feed button
+      backToFeedBtn.addEventListener('click', () => {
+        currentView = 'feed';
+        updateUI();
+      });
+      
+      // Add comment form
+      addCommentForm.addEventListener('submit', handleAddComment);
+    }
+
+    // Toggle between login and signup
+    function toggleAuthMode() {
+      const isLogin = authTitle.textContent === 'Login';
+      
+      if (isLogin) {
+        authTitle.textContent = 'Sign Up';
+        submitAuthBtn.textContent = 'Sign Up';
+        switchAuthBtn.textContent = 'Already have an account?';
+        nameField.classList.remove('hidden');
+        confirmPasswordField.classList.remove('hidden');
+      } else {
+        authTitle.textContent = 'Login';
+        submitAuthBtn.textContent = 'Login';
+        switchAuthBtn.textContent = 'Need to create an account?';
+        nameField.classList.add('hidden');
+        confirmPasswordField.classList.add('hidden');
+      }
+      
+      authError.classList.add('hidden');
+    }
+
+    // Reset auth form
+    function resetAuthForm() {
+      authTitle.textContent = 'Login';
+      submitAuthBtn.textContent = 'Login';
+      switchAuthBtn.textContent = 'Need to create an account?';
+      nameField.classList.add('hidden');
+      confirmPasswordField.classList.add('hidden');
+      authForm.reset();
+      authError.classList.add('hidden');
+    }
+
+    // Handle auth form submission
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      
+      const isLogin = authTitle.textContent === 'Login';
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      if (isLogin) {
+        login(email, password);
+      } else {
+        const name = document.getElementById('name').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (password !== confirmPassword) {
+          showAuthError("Passwords don't match");
+          return;
+        }
+        
+        signup(name, email, password);
+      }
+    }
+
+    // Login function
+    function login(email, password) {
+      const user = users.find(u => u.email === email && u.password === password);
+      
+      if (user) {
+        currentUser = user;
+        localStorage.setItem('techHelpCurrentUser', JSON.stringify(currentUser));
+        currentView = 'feed';
+        updateUI();
+      } else {
+        showAuthError('Invalid email or password');
+      }
+    }
+
+    // Signup function
+    function signup(name, email, password) {
+      // Check if user already exists
+      if (users.some(u => u.email === email)) {
+        showAuthError('Email already in use');
+        return;
+      }
+      
+      const newUser = {
+        id: Date.now().toString(),
+        name,
+        email,
+        password,
+        joinedAt: new Date().toISOString()
+      };
+      
+      users.push(newUser);
+      localStorage.setItem('techHelpUsers', JSON.stringify(users));
+      
+      currentUser = newUser;
+      localStorage.setItem('techHelpCurrentUser', JSON.stringify(currentUser));
+      currentView = 'feed';
+      updateUI();
+    }
+
+    // Logout function
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem('techHelpCurrentUser');
+      currentView = 'auth';
+      updateUI();
+    }
+
+    // Show auth error
+    function showAuthError(message) {
+      authError.textContent = message;
+      authError.classList.remove('hidden');
+    }
+
+    // Handle post problem
+    function handlePostProblem(e) {
+      e.preventDefault();
+      
+      const description = document.getElementById('problemDescription').value;
+      const file = problemImage.files[0];
+      
+      let imageUrl = null;
+      if (file) {
+        // In a real app, you'd upload this to a server
+        // For localStorage, we'll just store the file name
+        imageUrl = file.name;
+      }
+      
+      const newProblem = {
+        id: Date.now().toString(),
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        userName: currentUser.name,
+        description,
+        imageUrl,
+        createdAt: new Date().toISOString(),
+        comments: []
+      };
+      
+      problems.unshift(newProblem); // Add to beginning of array
+      localStorage.setItem('techHelpProblems', JSON.stringify(problems));
+      
+      // Reset form
+      postProblemForm.reset();
+      fileName.textContent = 'No file chosen';
+      imagePreview.classList.add('hidden');
+      imagePreview.src = '#';
+      
+      // Go to feed
+      currentView = 'feed';
+      updateUI();
+    }
+
+    // Load problems feed
+    function loadProblemsFeed() {
+      problemsFeed.innerHTML = '';
+      
+      if (problems.length === 0) {
+        problemsFeed.innerHTML = '<p class="text-center text-gray-500 py-8">No problems posted yet. Be the first to post one!</p>';
+        return;
+      }
+      
+      problems.forEach(problem => {
+        const problemEl = document.createElement('div');
+        problemEl.className = 'bg-white p-6 rounded-lg shadow-md';
+        problemEl.dataset.problemId = problem.id;
+        
+        problemEl.innerHTML = `
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h3 class="font-bold text-lg">${problem.userName || problem.userEmail}</h3>
+              <p class="text-gray-500 text-sm">${formatDate(problem.createdAt)}</p>
+            </div>
+            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${problem.comments.length} solutions</span>
+          </div>
+          <p class="text-gray-700 mb-4">${problem.description}</p>
+          ${problem.imageUrl ? `<img src="${problem.imageUrl}" alt="Problem screenshot" class="w-full h-auto rounded-md mb-4">` : ''}
+          <button class="view-problem-btn bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 w-full">View Solutions</button>
+        `;
+        
+        problemsFeed.appendChild(problemEl);
+      });
+      
+      // Add event listeners to view buttons
+      document.querySelectorAll('.view-problem-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const problemId = e.target.closest('[data-problem-id]').dataset.problemId;
+          viewProblem(problemId);
+        });
+      });
+    }
+
+    // View a single problem
+    function viewProblem(problemId) {
+      const problem = problems.find(p => p.id === problemId);
+      if (!problem) return;
+      
+      problemDetail.innerHTML = `
+        <div class="mb-4">
+          <h3 class="font-bold text-xl">${problem.userName || problem.userEmail}</h3>
+          <p class="text-gray-500 text-sm">${formatDate(problem.createdAt)}</p>
         </div>
-        <div class="flex items-center space-x-2">
-          <button class="upvote-btn text-gray-500 hover:text-green-500">
-            <span>▲</span>
-            <span id="upvoteCount">0</span>
-          </button>
-          <button class="downvote-btn text-gray-500 hover:text-red-500">
-            <span>▼</span>
-            <span id="downvoteCount">0</span>
-          </button>
-        </div>
-      </div>
-      <div class="text-xs text-gray-500 mt-1" id="commentTime"></div>
-    </div>
-  </template>
+        <p class="text-gray-700 mb-4">${problem.description}</p>
+        ${problem.imageUrl ? `<img src="${problem.imageUrl}" alt="Problem screenshot" class="w-full h-auto rounded-md mb-4">` : ''}
+      `;
+      
+      // Load comments for this problem
+      loadComments(problemId);
+      
+      currentView = 'problem';
+      updateUI();
+    }
+
+    // Load comments for a problem
+    function loadComments(problemId) {
+      const problemComments = comments.filter(c => c.problemId === problemId);
+      
+      commentsList.innerHTML = '';
+      
+      if (problemComments.length === 0) {
+        commentsList.innerHTML = '<p class="text-center text-gray-500 py-8">No solutions yet. Be the first to post one!</p>';
+        return;
+      }
+      
+      problemComments.forEach(comment => {
+        const commentEl = document.createElement('div');
+        commentEl.className = `bg-gray-50 p-4 rounded-md ${comment.isBestAnswer ? 'best-answer' : ''}`;
+        commentEl.dataset.commentId = comment.id;
+        
+        // Calculate votes
+        const commentVotes = votes.filter(v => v.commentId === comment.id);
+        const upvotes = commentVotes.filter(v => v.type === 'upvote').length;
+        const downvotes = commentVotes.filter(v => v.type === 'downvote').length;
+        
+        // Check if current user has voted
+        const userUpvoted = currentUser && commentVotes.some(v => v.userId === currentUser.id && v.type === 'upvote');
+        const userDownvoted = currentUser && commentVotes.some(v => v.userId === currentUser.id && v.type === 'downvote');
+        
+        // Check if current user is the problem owner
+        const problem = problems.find(p => p.id === problemId);
+        const isProblemOwner = currentUser && problem.userId === currentUser.id;
+        
+        commentEl.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-bold">${comment.userName || comment.userEmail}</h4>
+              <p class="text-gray-700">${comment.text}</p>
+              <p class="text-gray-500 text-sm mt-1">${formatDate(comment.createdAt)}</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button class="vote-btn ${userUpvoted ? 'text-green-500' : 'text-gray-500'}" data-vote="upvote">
+                ▲ <span class="vote-count">${upvotes}</span>
+              </button>
+              <button class="vote-btn ${userDownvoted ? 'text-red-500' : 'text-gray-500'}" data-vote="downvote">
+                ▼ <span class="vote-count">${downvotes}</span>
+              </button>
+            </div>
+          </div>
+          ${isProblemOwner && !comment.isBestAnswer ? `
+            <div class="mt-2 text-right">
+              <button class="mark-best-answer-btn text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200">Mark as Best Answer</button>
+            </div>
+          ` : ''}
+          ${comment.isBestAnswer ? `
+            <div class="mt-2 text-right">
+              <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✓ Best Answer</span>
+            </div>
+          ` : ''}
+        `;
+        
+        commentsList.appendChild(commentEl);
+      });
+      
+      // Add event listeners to vote buttons
+      document.querySelectorAll('.vote-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          if (!currentUser) {
+            alert('Please login to vote');
+            return;
+          }
+          
+          const commentId = e.target.closest('[data-comment-id]').dataset.commentId;
+          const voteType = e.target.dataset.vote;
+          handleVote(commentId, voteType);
+        });
+      });
+      
+      // Add event listeners to mark best answer buttons
+      document.querySelectorAll('.mark-best-answer-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const commentId = e.target.closest('[data-comment-id]').dataset.commentId;
+          markBestAnswer(problemId, commentId);
+        });
+      });
+    }
+
+    // Handle adding a comment
+    function handleAddComment(e) {
+      e.preventDefault();
+      
+      if (!currentUser) {
+        alert('Please login to comment');
+        return;
+      }
+      
+      const text = document.getElementById('commentText').value.trim();
+      if (!text) {
+        alert('Please enter a comment');
+        return;
+      }
+      
+      const problemId = problems.find(p => p.id === problemDetailContainer.dataset.problemId)?.id;
+      if (!problemId) return;
+      
+      const newComment = {
+        id: Date.now().toString(),
+        problemId,
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        userName: currentUser.name,
+        text,
+        createdAt: new Date().toISOString(),
+        isBestAnswer: false
+      };
+      
+      comments.push(newComment);
+      localStorage.setItem('techHelpComments', JSON.stringify(comments));
+      
+      // Update problem comments count
+      const problem = problems.find(p => p.id === problemId);
+      if (problem) {
+        problem.comments.push(newComment.id);
+        localStorage.setItem('techHelpProblems', JSON.stringify(problems));
+      }
+      
+      // Reset form and reload comments
+      document.getElementById('commentText').value = '';
+      loadComments(problemId);
+    }
+
+    // Handle voting
+    function handleVote(commentId, voteType) {
+      if (!currentUser) return;
+      
+      // Remove any existing vote by this user on this comment
+      votes = votes.filter(v => !(v.commentId === commentId && v.userId === currentUser.id));
+      
+      // Add new vote
+      votes.push({
+        commentId,
+        userId: currentUser.id,
+        type: voteType
+      });
+      
+      localStorage.setItem('techHelpVotes', JSON.stringify(votes));
+      
+      // Reload comments to show updated votes
+      const problemId = problems.find(p => p.comments.includes(commentId))?.id;
+      if (problemId) {
+        loadComments(problemId);
+      }
+    }
+
+    // Mark comment as best answer
+    function markBestAnswer(problemId, commentId) {
+      // Remove best answer from all other comments on this problem
+      comments.forEach(c => {
+        if (c.problemId === problemId) {
+          c.isBestAnswer = false;
+        }
+      });
+      
+      // Set this comment as best answer
+      const comment = comments.find(c => c.id === commentId);
+      if (comment) {
+        comment.isBestAnswer = true;
+      }
+      
+      localStorage.setItem('techHelpComments', JSON.stringify(comments));
+      loadComments(problemId);
+    }
+
+    // Format date
+    function formatDate(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleString();
+    }
+
+    // Initialize the app
+    init();
+  </script>
 </body>
 </html>
